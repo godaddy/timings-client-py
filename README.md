@@ -1,6 +1,18 @@
 # timings-client-py
 
-Python client for the `timings` API - [https://github.com/godaddy/timings](https://github.com/godaddy/timings)
+Python client for the `timings` API - [https://github.com/godaddy/timings](https://github.com/godaddy/timings)  
+
+**NOTE:** you need to have a timings API server running in your network to use this client!
+
+## Purpose
+
+- Sending performance data from functional tests to the [timings API](https://www.github.com/godaddy/timings).
+- This client makes it easy to communicate with the API without the need to setup your own curl/request/etc. calls.
+- The response contains the necessary fields to validate/assert the performance results (look for the `assert` field!).
+- The API stores the results in ElasticSearch and can be visualized with Kibana.
+- This helps get better visibility into performance improvements/regression trends before moving into production.
+
+To learn more about ELK (Elastic Search, LogStash, Kibana). Click Here [https://www.elastic.co/products/kibana](https://www.elastic.co/products/kibana)
 
 ## Installation
 
@@ -12,18 +24,34 @@ pip install timingsclient
 
 ## Configuration
 
-After installation you first need to copy the configuration file and change it to your needs. The client includes a sample config file that can be found here: `https://github.com/godaddy/timings-client-py/blob/master/timingsclient/default.yaml`. You will pass the location of this config file when you initiate the client (see below)
+After installation you first need to copy the configuration file and change it to your needs. The client includes a sample config file that can be found here: `https://github.com/godaddy/timings-client-py/blob/master/timingsclient/default.yaml`. You will pass the location of this config file when you initiate the client (see example below).
 
-Important keys to update are:
+These settings will become the **default** parameters for your tests! You can overwrite parameters for individual tests by using the `getapiparams` method (see example below).
 
-|key|value|description|
-|-|-|-|
-|PERF_API_URL|`http://perfapi.mydomain.com/v2/api/cicd`|The full URL to the API|
-|log.test_info|`my test`|Description of the test step|
-|log.env_tester|`local`|The test machine's environment|
-|log.browser|`Chrome`|The test browser|
-|log.env_target|`prod`|The test target environment|
-|log.team|`MY_TEAM`|The product team performing the test. This can be handy to separate results in the Kibana dashboards|
+```yaml
+PERF_API_URL: "http://{your API host}/v2/api/cicd/"
+api_params: 
+ sla: 
+  pageLoadTime: 2000
+ baseline: 
+  days: 7
+  perc: 75
+  padding: 1.2
+ flags: 
+  assertBaseline: true
+  debug: false
+  esTrace: false
+  esCreate: true
+  passOnFailedAssert: false
+ log: 
+  test_info: "Sample test_info"
+  env_tester: "Sample tester"
+  browser: "Sample browser"
+  env_target: "Sample target"
+  team: "SAMPLE TEAM"
+```
+
+You can find a list of all the 'common' parameters here: https://github.com/godaddy/timings#common-parameters-navtiming-usertiming-and-apitiming
 
 ## Usage
 
@@ -48,7 +76,7 @@ With the client initiated, you can start adding perf calls to your tests!
 It is recommended that you do this **only once** at the top of your test and store the response in a variable:
 
 ```python
-INJECT_CODE = PC.injectjs('navtiming', 'visual_complete')
+INJECT_CODE = PERF.injectjs('navtiming', 'visual_complete')
 ```
 
 ### Injecting JavaScript into your webdriver
@@ -59,12 +87,12 @@ The `INJECT_CODE` variable holds the JavaScript that you inject into your webdri
 BROWSER.execute_script(INJECT_CODE)
 ```
 
-### Setting parameters for the performance endpoints
+### Setting parameters for the API endpoints
 
 All of the performance methods require parameters to be included in the POST body. You can set the parameters before every test step or, like the injectjs call, do it once at the top of your test (if the parameters are always the same). The following line of code will do the trick:
 
 ```python
-API_PARAMS = PC.getapiparams(days=15, debug=True, es_create=False, log={'something': 'extra'})
+API_PARAMS = PERF.getapiparams(days=15, debug=True, es_create=False, log={'something': 'extra'})
 ```
 
 Notice that the above example is using "named arguments". The following named arguments are valid:
@@ -128,3 +156,5 @@ if INJECT_CODE is not False:
 BROWSER.close()
 
 ```
+
+For more information about the API: [https://github.com/godaddy/perf-api](https://github.com/godaddy/perf-api/blob/master/README.md)
