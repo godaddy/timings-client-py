@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Standard PyPi setup file"""
 from os import path
 import re
 from setuptools import setup, find_packages
@@ -7,6 +8,7 @@ REGEX = '^([\w\-\.]+)[\s]*([=<>\!]+)[\s]*([0-9\.]+)+(,[<>\!=]+[0-9\.]+)*'
 
 
 def required_packages_list(file_name, exclude_version=False):
+    """Check requirements file"""
     parent = path.abspath('.')
     if not file_name:
         raise RuntimeError('Pass the requirements.txt from where requires '
@@ -16,8 +18,8 @@ def required_packages_list(file_name, exclude_version=False):
     pattern = re.compile(REGEX)
     requires_list = []
     contents = None
-    with open(full_path) as f:
-        contents = f.read()
+    with open(full_path) as file:
+        contents = file.read()
 
     for line in contents.splitlines():
         match = pattern.match(line)
@@ -33,12 +35,12 @@ def required_packages_list(file_name, exclude_version=False):
 
 setup(
     name='timingsclient',
-    description='Python client for the NPM based timings API (see https://github.com/godaddy/timings)',
+    description='Python client for the timings API (see https://github.com/godaddy/timings)',
     url='https://github.com/godaddy/timings-client-py',
     author='GoDaddy Operating Company, LLC',
     author_email='mverkerk@godaddy.com',
     license='MIT',
-    version='1.0.0',
+    version='1.0.1',
     install_requires=required_packages_list('requirements.txt'),
     packages=find_packages(
         exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']))
