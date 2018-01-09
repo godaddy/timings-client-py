@@ -43,7 +43,7 @@ class Perf():
 
         return data
 
-    def injectjs(self, inject_type, mark=''):
+    def injectjs(self, inject_type, mark='', strip_query_string=False):
         """Call injectjs and return decoded JS string"""
         if not mark:
             mark = 'visual_complete'
@@ -52,6 +52,9 @@ class Perf():
             'injectType': inject_type,
             'visualCompleteMark': mark
         }
+
+        if type(strip_query_string) is bool:
+            data['stripQueryString'] = strip_query_string
 
         inject_js = self._call_api(data, 'injectjs')
 
@@ -96,10 +99,17 @@ class Perf():
 
     def _call_api(self, data, endpoint):
         """Call the API and return response or False"""
+        api_timeout = 0.5
+        if 'api_timeout' in self._conf \
+            and self._conf['api_timeout'] * 0 == 0 \
+            and self._conf['api_timeout'] < 10 \
+            and self._conf['api_timeout'] > 0.5:
+            api_timeout = self._conf['api_timeout']
+
         try:
             response = requests.post(
                 self._conf['PERF_API_URL'] + endpoint,
-                json=data, timeout=0.5
+                json=data, timeout=api_timeout
             )
             if not 200 <= response.status_code <= 299:
                 return {'error': "Error: Unexpected response {}".format(response)}
