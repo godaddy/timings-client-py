@@ -1,6 +1,18 @@
 # timings-client-py
 
-Python client for the `timings` API - [https://github.com/godaddy/timings](https://github.com/godaddy/timings)
+Client for [Timings API](https://www.github.com/godaddy/timings) to support **Python** based test environments
+
+**NOTE:** you need to have a timings API server running in your network to use this client!
+
+## Purpose
+
+- Sending performance data from functional tests to the [timings API](https://www.github.com/godaddy/timings).
+- This client makes it easy to communicate with the API without the need to setup your own curl/request/etc. calls.
+- The response contains the necessary fields to validate/assert the performance results (look for the `assert` field!).
+- The API stores the results in ElasticSearch and can be visualized with Kibana.
+- This helps get better visibility into performance improvements/regression trends before moving into production.
+
+To learn more about ELK (Elastic Search, LogStash, Kibana). Click Here [https://www.elastic.co/products/kibana](https://www.elastic.co/products/kibana)
 
 ## Installation
 
@@ -18,7 +30,7 @@ Add a custom config file to your project's root folder and edit to match your si
 
 ```yaml
 PERF_API_URL: "http://localhost/v2/api/cicd/"    # the full fqdn of the API server
-api_timeout: 2               # timeout for the API in seconds
+api_timeout: 2               # timeout for the API in seconds (valid range: 2-30 seconds)
 api_params:                  # the "api parameters" that will be send to the API in the POST body
  sla:                           # This is the "flat SLA" - valid keys are "pageLoadTime" or "visualCompleteTime"
   pageLoadTime: 2000                # Flat maximum threshold - this will be used if baseline (+ padding) is greater or flags.assertBaseline=false!
@@ -33,11 +45,11 @@ api_params:                  # the "api parameters" that will be send to the API
   esCreate: false                   # Save results to elasticsearch
   passOnFailedAssert: false         # Pass the test, even when the performance is above the threshold
  log:                           # These key-value pairs will be stored in elasticsearch and can be used to slice & dice the data in Kibana
-  test_info: "Demo test [PY]"       # Info about the test(-step)
+  test_info: "Demo test"            # Info about the test(-step)
   env_tester: "Windows"             # Environment of the test machine (local, saucelabs, selenium grid, etc.)
   browser: "Demo browser"           # Browser used to run the test with
   env_target: "PROD"                # Environment of the target app (usually dev, test, or prod)
-  team: "DEMO TEAM"                 # THe name of the (test-)team 
+  team: "DEMO TEAM"                 # THe name of the (test-)team
 ```
 
 NOTE: it is recommended that you **_dynamically_** populate log fields like `browser` and `env_target`.
@@ -73,10 +85,11 @@ import platform
 from selenium import webdriver
 from timingsclient import Perf
 
-BROWSER = webdriver.Firefox(
-    executable_path=r'~/selenium/geckodriver')
-BROWSER.get('http://www.seleniumconf.de')
+BROWSER = webdriver.Chrome(
+    '/Users/mverkerk/selenium/chromedriver_2.34.exe')
+BROWSER.get('http://www.seleniumconf.de/test?test=strip_this')
 
+# Perform functional assert
 try:
     BROWSER.find_element_by_class_name('section__heading')
     print("FUNCTIONAL: Page looks good!")
@@ -86,23 +99,36 @@ except:
 # Setup custom config for PERF
 CONFIG_FILE = os.path.join(
     os.path.abspath(os.path.dirname(__file__)),
-    '', 'custom.yaml')
+    '', 'config.yaml')
+
+# Initiate client
 PERF = Perf(CONFIG_FILE)
-INJECT_CODE = PERF.injectjs('navtiming')
-API_PARAMS = PERF.getapiparams(es_create=True, log={
+
+# Collect inject code from API (strip query string = True)
+INJECT_CODE = PERF.injectjs(inject_type='navtiming', mark='visual_complete', strip_qs=True)
+
+# Set API parameters
+API_PARAMS = PERF.getapiparams(es_create=False, log={
     'browser': BROWSER.name, 'env_tester': platform.system()})
 
 if INJECT_CODE is not False:
+    # Collect perf data from browser
     TIMING = BROWSER.execute_script(INJECT_CODE)
+    # Send perf data with parameters to API
     NAV_RESP = PERF.navtiming(TIMING, API_PARAMS)
 
+    # Assert perf
     if NAV_RESP is not False:
         print(
-            'PERFORMANCE was',
+            'PERFORMANCE of [' + NAV_RESP["export"]["dl"] + '] was ',
             ('GOOD' if NAV_RESP['assert'] is True else "BAD") + '! - ',
             str(NAV_RESP['export']['perf']['measured']),
             '/ ' + str(NAV_RESP['export']['perf']['threshold'])
         )
+    else:
+        print("NAV_RESP problem!")
+else:
+    print("INJECT_CODE problem!")
 
 BROWSER.close()
 
@@ -126,7 +152,7 @@ Collect or overwrite the default parameters (see above) to be send to the API. N
 |searchUrl|string|`''`|Wildcard to use for baseline (instead of using the submitted URL)
 |log|dict|-|Object that holds the keys to be logged. Can be used to overwrite the defaults or add extra keys!
 
-Example:<br>
+Example:
 
 ```python
 getapiparams(es_create=False, debug=True, log={'browser': BROWSER.name, 'env_tester': platform.system()})
@@ -173,7 +199,7 @@ Get the "inject code" from the API
 |mark|No|string|`false`|The name of the visual complete mark|
 |strip_query_string|No|boolean|`false`|Indicates whether you want to strip the querystring from the URL you are testing|
 
-Example:<br>
+Example:
 
 ```python
 injectjs( inject_type="navtiming", mark="visual_complete", strip_query_string=True )
@@ -212,7 +238,7 @@ Post apitiming performance data to the API
 
 |param|type|required|default|description|
 |-|-|-|-|-|
-|timing|dict|Yes|-|Contains the start- and stop-timestamps that you set before and after running the API test. Example:<br>`{"startTime": 1515443109031, "endTime": 1515443109046}` |
+|timing|dict|Yes|-|Contains the start/stop timestamps that you set before and after running your API call. Example: `{"startTime": 1515443109031, "endTime": 1515443109046}` |
 |url|string|Yes|-|The URL of the API you're testing|
 |api_params|dict|Yes|-|Contains the API params that you retrieved from the `getapiparams()` method|
 

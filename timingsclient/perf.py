@@ -43,25 +43,20 @@ class Perf():
 
         return data
 
-    def injectjs(self, inject_type, mark='', strip_query_string=False):
+    def injectjs(self, inject_type=None, mark='visual_complete', strip_qs=False):
         """Call injectjs and return decoded JS string"""
-        if not mark:
-            mark = 'visual_complete'
+        if inject_type in ("navtiming", "usertiming"):
+            data = dict(injectType=inject_type, visualCompleteMark=mark)
 
-        data = {
-            'injectType': inject_type,
-            'visualCompleteMark': mark
-        }
+            if isinstance(strip_qs, bool):
+                data['stripQueryString'] = strip_qs
 
-        if type(strip_query_string) is bool:
-            data['stripQueryString'] = strip_query_string
+            inject_js = self._call_api(data, 'injectjs')
 
-        inject_js = self._call_api(data, 'injectjs')
+            if 'inject_code' in inject_js:
+                return urllib.parse.unquote(inject_js['inject_code'])
 
-        if 'inject_code' in inject_js:
-            return urllib.parse.unquote(inject_js['inject_code'])
-        else:
-            return False
+        return False
 
     def usertiming(self, inject_js, api_params):
         """Call injectjs and return decoded JS string"""
@@ -71,8 +66,8 @@ class Perf():
 
         if 'assert' in usertiming:
             return usertiming
-        else:
-            return False
+
+        return False
 
     def navtiming(self, inject_js, api_params):
         """Call inject_js and return decoded JS string"""
@@ -82,8 +77,8 @@ class Perf():
 
         if 'assert' in navtiming:
             return navtiming
-        else:
-            return False
+
+        return False
 
     def apitiming(self, timing, url, api_params):
         """Call injectjs and return decoded JS string"""
@@ -94,17 +89,14 @@ class Perf():
 
         if 'assert' in apitiming:
             return apitiming
-        else:
-            return False
+
+        return False
 
     def _call_api(self, data, endpoint):
         """Call the API and return response or False"""
-        api_timeout = 0.5
-        if 'api_timeout' in self._conf \
-            and self._conf['api_timeout'] * 0 == 0 \
-            and self._conf['api_timeout'] < 10 \
-            and self._conf['api_timeout'] > 0.5:
-            api_timeout = self._conf['api_timeout']
+        api_timeout = 2 if 'api_timeout' not in self._conf else self._conf['api_timeout']
+        if api_timeout * 0 != 0 or api_timeout > 30 or api_timeout < 2:
+            api_timeout = 2
 
         try:
             response = requests.post(
@@ -114,7 +106,6 @@ class Perf():
             if not 200 <= response.status_code <= 299:
                 return {'error': "Error: Unexpected response {}".format(response)}
 
-            # json_obj = response.json()
             return response.json()
         except requests.exceptions.RequestException as err:
             print(err)
