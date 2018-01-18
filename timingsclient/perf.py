@@ -104,11 +104,12 @@ class Perf():
                 json=data, timeout=api_timeout
             )
             if not 200 <= response.status_code <= 299:
+                print('timingsclient: Unexpected response from API {}'.format(response))
                 return {'error': "Error: Unexpected response {}".format(response)}
 
             return response.json()
         except requests.exceptions.RequestException as err:
-            print(err)
+            print('timingsclient: exception in API request: ' + str(err))
             return {'error': err}
 
     def _load_conf(self):
