@@ -2,6 +2,6 @@
 from __future__ import absolute_import
 
 from .perf import Perf
-from . import config, perf
+from . import perf
 
-__all__ = ['perf', 'config', 'Perf']
+__all__ = ['perf', 'Perf']
