@@ -36,6 +36,8 @@ class Perf():
                 data['baseline']['padding'] = kwargs['padding']
             if 'search_url' in kwargs:
                 data['baseline']['searchUrl'] = kwargs['search_url']
+            if 'multirun' in kwargs and isinstance(kwargs['multirun'], dict):
+                data['multirun'] = kwargs['multirun']
 
             if 'log' in kwargs and isinstance(kwargs['log'], dict):
                 # Add extra items to data['log']
