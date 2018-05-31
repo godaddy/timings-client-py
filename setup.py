@@ -40,7 +40,7 @@ setup(
     author='GoDaddy Operating Company, LLC',
     author_email='mverkerk@godaddy.com',
     license='MIT',
-    version='1.0.2',
+    version='1.0.3',
     install_requires=required_packages_list('requirements.txt'),
     packages=find_packages(
         exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']))
