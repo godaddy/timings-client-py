@@ -7,7 +7,7 @@ from six.moves import urllib
 import yaml
 
 
-class Perf():
+class Perf(object):
 
     """ Performance Functions """
     def __init__(self, filespec=None):
@@ -104,13 +104,13 @@ class Perf():
                 json=data, timeout=api_timeout
             )
             if not 200 <= response.status_code <= 299:
-                print('timingsclient: Unexpected response from API {}'.format(response))
-                return {'error': "Error: Unexpected response {}".format(response)}
+                print("timingsclient: Unexpected response from API '{}'".format(response.text))
+                return {'error': "Error: Unexpected response '{}'".format(response.text)}
 
             return response.json()
         except requests.exceptions.RequestException as err:
-            print('timingsclient: exception in API request: ' + str(err))
-            return {'error': err}
+            print('timingsclient: exception in API request: ' + str(err.message))
+            return {'error': err.message}
 
     def _load_conf(self):
         """ load default or custom config """
